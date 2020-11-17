@@ -1,18 +1,22 @@
 /* Home page of the pick and drop worker */
-import 'package:background_location/background_location.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import "package:flutter/material.dart";
 import 'package:laundry/AdminSection/Screen/AttendanceAdmin.dart';
 import 'package:laundry/Classes/UserAuth.dart';
 import 'package:laundry/Classes/UserBasic.dart';
 import 'package:laundry/Services/AuthServices.dart';
-import 'package:laundry/authentication/AuthScreens/Login.dart';
-import 'package:laundry/pick_drop_ui/EmpProfile.dart';
-import 'package:laundry/pick_drop_ui/pages/WorkHistory.dart';
-import 'package:laundry/pick_drop_ui/pages/attendance.dart';
-import 'package:laundry/pick_drop_ui/pages/works.dart';
+import 'package:laundry/Services/LocalNotification.dart';
+import 'package:laundry/WorkerSection/Screen/AttendanceScreen.dart';
+import 'package:laundry/WorkerSection/Screen/EmpProfile.dart';
+import 'package:laundry/WorkerSection/Screen/JobAssigned.dart';
+import 'package:laundry/WorkerSection/Screen/WorkHistory.dart';
+import 'package:laundry/authentication/AuthScreens/LoginScreen.dart';
 import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 
 class HomePage extends StatefulWidget {
   final UserBasic userBasic;
@@ -25,19 +29,18 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   
   int i = 0;
-  FirebaseUser user;
   UserAuth userAuth = UserAuth();
+  NotificationServices notificationServices = NotificationServices();
+  final FirebaseDatabase firebaseDatabase = FirebaseDatabase.instance;
+  DatabaseReference dbf;
   
   
   
   Widget buildSideMenu(){
     return Container(
-      width: 260,
+      width: 380,
       decoration: BoxDecoration(
-        image: DecorationImage(
-            image: AssetImage("images/12.jpg"),
-            fit: BoxFit.cover
-        ),
+        color: Color.fromRGBO(224, 238, 242, 1)
       ),
       child: Drawer(
         elevation: 0,
@@ -48,8 +51,9 @@ class _HomePageState extends State<HomePage> {
               height: 250,
               width: 200,
               child: DrawerHeader(
-                child: Column(
+                child: Row(
 //                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
                     Container(
                       width: 120,
@@ -60,15 +64,12 @@ class _HomePageState extends State<HomePage> {
                           fit: BoxFit.fill,
                         ),
                         borderRadius: BorderRadius.circular(100.0),
-                        border: Border.all(
-                          color: Colors.blueGrey[50],
-                          width: 6.0,
-                        ),
+                       
                       ),
                     ),
                     
                     Padding(
-                      padding: EdgeInsets.all(15),
+                      padding: EdgeInsets.only(right: 8,left: 8,top:35),
                       child: RichText(
                           textAlign: TextAlign.center,
                         text: TextSpan(
@@ -78,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           children: <TextSpan>[
                             TextSpan(text:widget.userBasic.name !=null? '${widget.userBasic.name}\n':" ",style: TextStyle(
-                              fontStyle: FontStyle.italic,color: Colors.white
+                              color: Colors.white,fontFamily: 'Seguisb',
                             )),
                             TextSpan(text: ' '),
                             TextSpan(text:widget.userBasic.userID !=null? '${widget.userBasic.userID}':"")
@@ -89,14 +90,14 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blueGrey[700],
+                  color: Color.fromRGBO(2, 144, 149, 1),
                 ),
               ),
             ),
             CustomListTile(Icons.person,"Profile",()=>
                 Navigator.push(context,
                     MaterialPageRoute(
-                        builder: (context)=> Empprofile(
+                        builder: (context)=> EmpProfile(
                           userBasic: widget.userBasic,
                         )
                     )
@@ -104,7 +105,10 @@ class _HomePageState extends State<HomePage> {
             ),
             CustomListTile(Icons.lock,"Logout",() async{
               try {
-                await AuthServices().logOutUser(widget.userBasic);
+                bool temp =  false;
+                temp = await AuthServices().logOutUser(widget.userBasic, context);
+                if(!temp)
+                  throw(" ");
                 Navigator.pop(context);
                 Navigator.pop(context);
                 Navigator.push(context,
@@ -113,7 +117,8 @@ class _HomePageState extends State<HomePage> {
                     )
                 );
               }catch(e){
-              
+                print("error");
+                print(e);
               }
             }),
           ],
@@ -123,29 +128,30 @@ class _HomePageState extends State<HomePage> {
   }
   
   void locationPermission() async{
-    PermissionStatus f = await BackgroundLocation.checkPermissions();
-    
-    if(f.value ==0 ){
-      await BackgroundLocation.getPermissions(onDenied:(){
-        alertPop();
-      },onGranted: (){
-      
-      });
+    var permission = await Permission.locationAlways.isGranted;
+    if(!permission){
+      await Permission.locationAlways.request();
     }
   }
   
   
-  alertPop() {
+  Future<dynamic> alertPop() async{
     return showDialog(
         context: context,
         builder: (BuildContext context){
           return AlertDialog(
-            title: Text("Administrator"),
-            content: Text("It is Compulsory to give location permission"),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Administrator"),
+                Divider(thickness: 1,),
+              ],
+            ),
+            content: Text("You have to give always location tracking permission"),
             actions: <Widget>[
               FlatButton(
                 child: Text("Ok"),
-                onPressed: (){
+                onPressed: () {
                   Navigator.pop(context);
                   locationPermission();
                 },
@@ -155,53 +161,108 @@ class _HomePageState extends State<HomePage> {
         }
     );
   }
+
+
+
+  static Future<dynamic> backgroundMessage(Map<String, dynamic> message) async{
+    NotificationServices notificationServices = NotificationServices();
+    notificationServices.initializeSetting();
+    print("background");
+    if (message.containsKey('data')) {
+      final dynamic data = message['data'];
+    }
+  
+    if (message.containsKey('notification')) {
+      final dynamic notification = message['notification'];
+    }
+    return Future<void>.value();
+  }
+
+  Future<void> messageFCM() async{
+    String title;
+    String body;
+    notificationServices.initializeSetting();
+    FirebaseMessaging firebaseMessaging = FirebaseMessaging();
+    firebaseMessaging.configure(
+      onMessage: (Map<String,dynamic> message) async{
+        try {
+          print("on Message " + message.toString());
+          title = await message["notification"]["title"];
+          body = await message["notification"]["body"];
+          print("title " +title);
+          print("body " +body);
+          notificationServices.showNotification(title, body);
+        }catch(e){
+          print(e);
+        }
+      },
+      onBackgroundMessage:backgroundMessage,
+      onLaunch: (Map<String,dynamic> message) async{
+        print("on Launch" + message.toString());
+      },
+      onResume: (Map<String,dynamic> message) async{
+        print("on Resume" + message.toString());
+      },
+    );
+    await firebaseMessaging.getToken().then((value){
+      print(value);
+      dbf = firebaseDatabase.reference();
+      dbf
+          .child("FCMTokens")
+          .child(widget.userBasic.userID.toString())
+          .set({
+        'token':value
+      });
+    });
+    print("conpleted");
+  }
+  
   
   
   @override
   void initState() {
     super.initState();
     locationPermission();
+    messageFCM();
   }
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       appBar: AppBar(
-        backgroundColor: Colors.blueGrey[700],
-        elevation: 8,
-        iconTheme: IconThemeData(
-          color:Colors.blue[100],
-        ),
         title: Text(
           "HOME",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontFamily: "OpenSans",
+            fontFamily: "Seguisb",
             letterSpacing: 1.0,
-            color:Colors.blue[100],
+            color:Color.fromRGBO(255, 255, 255, 1),
           ),
         ),
-        centerTitle: true,
         actions: <Widget>[
           IconButton(
             icon: Icon(
               Icons.notifications,
-              color:Colors.blue[100],
+              color:Color.fromRGBO(255, 255, 255, 1),
             ),
-            onPressed: () {},
+            onPressed: () {
+            },
           ),
         ],
       ),
+      
       drawer: buildSideMenu(),
       body: Container(
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
-        child: GridView.count(
-          mainAxisSpacing: 5,
-          crossAxisCount: 2,
-          childAspectRatio: 0.88,
+        child: Column(
           children: <Widget>[
-            ListGrid(widget.userBasic,Icons.work,"Task",()=>(){
+            SizedBox(
+              height: 50,
+            ),
+            if(widget.userBasic.designation == 'DeliveryBoy')
+            List(widget.userBasic,Icons.work,"Work Assigned",()=>(){
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context)=> Work(
@@ -217,14 +278,20 @@ class _HomePageState extends State<HomePage> {
 //                )),
 //              );
 //            },),
-            ListGrid(widget.userBasic,Icons.access_time,"Details",()=>(){
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context)=> AttendanceAdmin(
-                )),
-              );
-            },),
-            ListGrid(widget.userBasic,Icons.assignment_turned_in,"Attendance",()=>(){
+            if(widget.userBasic.designation != 'DeliveryBoy')
+              List(widget.userBasic,Icons.access_time,"Admin",()=>(){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context)=> AttendanceAdmin(
+                  
+                  )),
+                );
+                },),
+            SizedBox(
+              height: 50,
+            ),
+            if(widget.userBasic.designation == 'DeliveryBoy')
+            List(widget.userBasic,Icons.assignment_turned_in,"Attendance",()=>(){
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context)=> Attendance(
@@ -232,7 +299,11 @@ class _HomePageState extends State<HomePage> {
                 )),
               );
             },),
-            ListGrid(widget.userBasic,Icons.history,"This Month",()=>(){
+            SizedBox(
+              height: 50,
+            ),
+            if(widget.userBasic.designation == 'DeliveryBoy')
+            List(widget.userBasic,Icons.history,"This Month",()=>(){
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context)=> WorkHistory(
@@ -242,72 +313,65 @@ class _HomePageState extends State<HomePage> {
             },),
           ],
         ),
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("images/12.jpg"),
-            fit: BoxFit.fill,
-          ),
-        ),
+        // color: Color.fromRGBO(255, 255, 255, 1),
       ),
     );
   }
 }
 
-class ListGrid extends StatelessWidget {//Class for grid display of homepage
+class List extends StatelessWidget {//Class for grid display of homepage
   final IconData icon;
   final String text;
   final UserBasic userBasic;
   final Function onTap;
-  ListGrid(this.userBasic,this.icon,this.text,this.onTap);
+  List(this.userBasic,this.icon,this.text,this.onTap);
+  
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding:EdgeInsets.all(15.0),
-      child: Container(
-        padding:  EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("images/laundry.png"),
-            fit: BoxFit.fill,
+    return Stack(
+      children: [
+        Container(
+          height: 56,
+          width: 250,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(40),
+            ),
+          child: RaisedButton(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(40),
+            ),
+            color: Color.fromRGBO(224, 238, 242, 1),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color.fromRGBO(88,89,91,1),
+                fontFamily: "Seguisb",
+                fontWeight: FontWeight.w400,
+                fontSize: 18,
+              ),
+            ),
+            onPressed: onTap()
           ),
-        ) ,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: Color.fromRGBO(88,89,91,1),
-                  fontFamily: "OpenSans",
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(bottom:3.0),
-              child: Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(88,89,91,1),
-                  borderRadius: BorderRadius.circular(18.0),
-                ),
-                child: IconButton(
-                    icon: Icon(
-                      icon,
-                      color: Colors.white,
-                      size: 23.0,
-                    ),
-                    onPressed: onTap()
-                ),
-              ),
-            ),
-          ],
         ),
-      ),
+        Container(
+          height: 56,
+          width: 56,
+          decoration: BoxDecoration(
+            color: Color.fromRGBO(88,89,91,1),
+            borderRadius: BorderRadius.circular(40.0),
+          ),
+          child: IconButton(
+            onPressed: (){},
+              icon: Icon(
+                icon,
+                color: Colors.white,
+                size: 25.0,
+              ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -349,7 +413,8 @@ class CustomListTile extends StatelessWidget{        //Class for items to be dis
                         style: TextStyle(
                             fontSize: 16.0,
                             color: Color.fromRGBO(88,89,91,1),
-                            fontWeight: FontWeight.w600
+                            fontWeight: FontWeight.w600,
+                          fontFamily: 'Myriad'
                         ),
                       ),
                     ),
@@ -366,3 +431,7 @@ class CustomListTile extends StatelessWidget{        //Class for items to be dis
     );
   }
 }
+
+
+
+

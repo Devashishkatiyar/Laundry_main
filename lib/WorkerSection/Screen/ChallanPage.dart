@@ -13,6 +13,7 @@ import 'package:laundry/Classes/WorkAvailable.dart';
 import 'package:laundry/others/PDFBuilder.dart';
 import 'package:laundry/others/PDFViewer.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:screen/screen.dart';
 
 bool listShow = false;
 String _searchText = '';
@@ -50,12 +51,13 @@ class _CustomerEndState extends State<CustomerEnd> {
 	Future<void> sendDataToWeb(List<GarmentInBasket> list) async{
 		try{
 			Map<String,dynamic> json ={
-				"PickDropJobId" : int.parse(widget.job.jobId),
+				"PickDropJobId" : int.parse(widget.job.id),
 				"CreatedBy":2,
 				"LstMobileDetailChallanModel" : [
 					for(var v in list){
-							"GarmentId": int.parse(v.garmentObject.garmentId),
-							"GarmentJobId": v.jobIdJson,
+						"GarmentId": int.parse(v.garmentObject.garmentId),
+						"Quantity": v.quantity,
+						"GarmentJobId": v.jobIdJson,
 					}
 				]
 			};
@@ -98,6 +100,7 @@ class _CustomerEndState extends State<CustomerEnd> {
 	
 	@override
   void initState() {
+		Screen.keepOn(false);
     super.initState();
     hashMap.clear();
     workAvailableListFetch();
@@ -158,14 +161,11 @@ class _CustomerEndState extends State<CustomerEnd> {
 	  
     return Scaffold(
 	    appBar: AppBar(
-		    iconTheme: IconThemeData(
-				    color: Colors.blue[100]
-		    ),
 		    title: Text("Challan",style: TextStyle(
 				    fontFamily: "OpenSans",
 				    fontWeight: FontWeight.bold,
 				    letterSpacing: 1.0,
-				    color: Colors.blue[100]),),
+				    color: Color.fromRGBO(255, 255, 255, 1)),),
 		    centerTitle: true,
 		    backgroundColor: Colors.blueGrey[700],
 	    ),
@@ -266,7 +266,6 @@ class _CustomerEndState extends State<CustomerEnd> {
 								      SizedBox(height: 2),
 								      TextFormField(
 									      decoration: InputDecoration(
-										     
 									      ),
 									      onChanged: (value){
 									      	numberOfPieces = int.parse(value);
@@ -586,22 +585,19 @@ class _CustomerEndState extends State<CustomerEnd> {
 						          ),),
 						          onPressed: () async {
 							          loadingWidget(context);
-							          print("1");
 							          await sendDataToWeb(hashMap);
-							          print("2");
 						          	await writeInPdf(hashMap,challanNumber);
-							          print("3");
 						          	await savePdf(challanNumber);
-							          print("4");
+						          	print(challanNumber);
 						          	Directory documentDirectory = await getApplicationDocumentsDirectory();
 						          	String documentPath = documentDirectory.path;
-						          	String filePath = "$documentPath/example.pdf";
-							          print("5");
-						          	Navigator.pop(context);
+						          	String filePath = "$documentPath/${challanNumber.replaceAll("/", "r")}.pdf";
+							          // String filePath = "$documentPath/example.pdf";
 						          	Navigator.pop(context);
 						          	Navigator.push(context,
 									          MaterialPageRoute(
 											          builder: (context) => PdfProviderScreen(
+												          userBasic: widget.userBasic,
 												          path: filePath,))
 							          );},
 					          ),
@@ -713,14 +709,21 @@ class _CustomerEndState extends State<CustomerEnd> {
   }
   
   loadingWidget(BuildContext context){
+		print("loading widget");
 		return showDialog(
+			// barrierColor: Colors.black,
 			context: context,
 			builder: (BuildContext context){
 				return AlertDialog(
+					elevation: 10.0,
 					shape: RoundedRectangleBorder(),
-					content: Center(
-					  child: CircularProgressIndicator(
-					  	valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+					content: Container(
+						height: 40,
+					  width: 40,
+					  child: Center(
+					    child: CircularProgressIndicator(
+					    	valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+					    ),
 					  ),
 					),
 				);

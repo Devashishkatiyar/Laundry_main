@@ -1,14 +1,16 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flare_flutter/flare_actor.dart';
 import 'dart:async';
+
+
 class Delivery extends StatefulWidget{
   @override
   State<StatefulWidget> createState() {
-    // TODO: implement createState
     return DeliveryState();
   }
 }
+
+
 class DeliveryState extends State<Delivery>{
   bool i= true;
   Container j;
@@ -27,7 +29,6 @@ class DeliveryState extends State<Delivery>{
   }
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Scaffold(
         body: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import'package:flutter/material.dart';
 import 'package:laundry/Classes/UserBasic.dart';
-import 'package:laundry/pick_drop_ui/home_page.dart';
-class Empprofile extends StatelessWidget{
+
+
+class EmpProfile extends StatelessWidget{
 	final UserBasic userBasic;
 
-  const Empprofile({Key key, this.userBasic}) : super(key: key);
+  const EmpProfile({Key key, this.userBasic}) : super(key: key);
 	@override
 	Widget build(BuildContext context){
 		
@@ -35,8 +36,7 @@ class ProfileState extends State<Profile>{
 	double font2=14.0;
 	
 	@override
-	Widget build(BuildContext context)
-	{
+	Widget build(BuildContext context) {
 		Widget details;
 		if(i){
 			details =Column(

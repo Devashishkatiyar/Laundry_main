@@ -12,14 +12,16 @@ List<DateTime> absentDates = [];
 
 List<DateTime> halfDates = [];
 
+
 class Attendance extends StatefulWidget{
   final UserBasic userBasic;
 
   const Attendance({Key key, this.userBasic}) : super(key: key);
 @override
   State<StatefulWidget> createState() => AttendanceSate();
-
 }
+
+
 
 class AttendanceSate extends State<Attendance> {
   
@@ -38,7 +40,7 @@ class AttendanceSate extends State<Attendance> {
     ),
     child: Center(
       child: Text(
-        day,
+        day.toUpperCase(),
         style: TextStyle(
           color: Colors.black,
         ),
@@ -81,7 +83,7 @@ class AttendanceSate extends State<Attendance> {
     ),
   );
   
-  getData() async{
+  Future<void> getData() async{
     await getAttendance(widget.userBasic).then((value){
       setState(() {
         attend = false;
@@ -95,8 +97,10 @@ class AttendanceSate extends State<Attendance> {
     presentDates = [];
     absentDates = [];
     halfDates = [];
-    getData();
+    if(DateTime.now().day > 4)
+      getData();
   }
+  
   
   
   @override
@@ -108,7 +112,7 @@ class AttendanceSate extends State<Attendance> {
     
     for(int i=0;i< len ; i++){
       dateMap.add(presentDates[i],
-      new Event(
+          Event(
         date: presentDates[i],
         title: 'Event 1',
         icon: presentIconTag(
@@ -141,20 +145,15 @@ class AttendanceSate extends State<Attendance> {
     
       return Scaffold(
         appBar: AppBar(
-          iconTheme: IconThemeData(
-              color: Colors.blue[100]
-          ),
           title: Text(
             "ATTENDANCE",
             style: TextStyle(
               fontFamily: "OpenSans",
               fontWeight: FontWeight.bold,
               letterSpacing: 1.0,
-              color: Colors.blue[100],
+              color: Color.fromRGBO(255, 255, 255, 1)
             ),
           ),
-          centerTitle: true,
-          backgroundColor: Colors.blueGrey[700],
         ),
         body: attend?Container(
           child: Center(
@@ -175,7 +174,14 @@ class AttendanceSate extends State<Attendance> {
               headerTextStyle: TextStyle(
                 color: Colors.black,
                 fontSize: 25
-              ),
+              ), showHeader: true,
+                daysTextStyle: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold
+                ),
+                weekDayFormat: WeekdayFormat.standaloneNarrow,
+                weekDayBackgroundColor: Colors.black,
+
 //              weekDayBackgroundColor: Colors.black,
               weekdayTextStyle: TextStyle(
                 color: Color.fromRGBO(169, 169, 169, 1),
@@ -223,10 +229,10 @@ class AttendanceSate extends State<Attendance> {
 //            ),
             
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(8.0),
               child: Container(
                 margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 65,
+                height: 60,
 //              padding: EdgeInsets.only(left: 20,right: 10),
                 decoration: BoxDecoration(
                   color: Color.fromRGBO( 224, 238, 242, 1),
@@ -237,33 +243,33 @@ class AttendanceSate extends State<Attendance> {
 //                 crossAxisAlignment: CrossAxisAlignment.stretch,
                    children: <Widget>[
                      Padding(
-                       padding: const EdgeInsets.only(left: 35.0),
-                       child: Text("Present",style: TextStyle(fontFamily: "Myriad", fontSize: 32),),
+                       padding: EdgeInsets.only(left: 35.0),
+                       child: Text("Present",style: TextStyle(fontFamily: "Myriad", fontSize: 22),),
                      ),
                      Container(
                        margin: EdgeInsets.symmetric(vertical: 10,horizontal: 10),
                        height: 45,
                        width: 60,
                        decoration: BoxDecoration(
-                         border: Border.all(),
                          shape: BoxShape.circle,
-                         color: Color.fromRGBO(0, 179, 50, 1),
+                         color: Color.fromRGBO(141, 241, 98, 1),
                        ),
                        child: Center(
                          child: Text(
                            '${presentDates.length}',
-                           style: TextStyle(fontFamily: "Myriad_Bold",fontSize: 30,fontWeight: FontWeight.w300, color: Colors.white),),
+                           style: TextStyle(fontFamily: "Myriad_Bold",fontSize: 20,fontWeight: FontWeight.w300, color: Colors.white),),
                        ),
                      )
                    ],
                  ),
               ),
             ),
+            
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(8.0),
               child: Container(
                 margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 65,
+                height: 60,
 //              padding: EdgeInsets.only(left: 20,right: 10),
                 decoration: BoxDecoration(
                     color: Color.fromRGBO( 224, 238, 242, 1),
@@ -274,33 +280,34 @@ class AttendanceSate extends State<Attendance> {
 //                 crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Padding(
-                      padding: const EdgeInsets.only(left: 35.0),
-                      child: Text("Absent",style: TextStyle(fontFamily: "Myriad", fontSize: 32),),
+                      padding: EdgeInsets.only(left: 35.0),
+                      child: Text("Absent",style: TextStyle(fontFamily: "Myriad", fontSize: 22),),
                     ),
                     Container(
                       margin: EdgeInsets.symmetric(vertical: 10,horizontal: 10),
                       height: 60,
                       width: 60,
                       decoration: BoxDecoration(
-                        border: Border.all(),
+
                         shape: BoxShape.circle,
-                        color: Color.fromRGBO(244, 41, 65, 1),
+                        color: Color.fromRGBO(255, 100, 107, 1),
                       ),
                       child: Center(
                         child: Text(
                           '${absentDates.length}',
-                          style: TextStyle(fontFamily: "Myriad_Bold",fontSize: 30,fontWeight: FontWeight.w300, color: Colors.white),),
+                          style: TextStyle(fontFamily: "Myriad_Bold",fontSize: 20,fontWeight: FontWeight.w300, color: Colors.white),),
                       ),
                     )
                   ],
                 ),
               ),
             ),
+            
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(8.0),
               child: Container(
                 margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 65,
+                height: 60,
 //              padding: EdgeInsets.only(left: 20,right: 10),
                 decoration: BoxDecoration(
                     color: Color.fromRGBO( 224, 238, 242, 1),
@@ -311,22 +318,21 @@ class AttendanceSate extends State<Attendance> {
 //                 crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Padding(
-                      padding: const EdgeInsets.only(left: 35.0),
-                      child: Text("Half Days",style: TextStyle(fontFamily: "Myriad", fontSize: 32),),
+                      padding: EdgeInsets.only(left: 35.0),
+                      child: Text("Half Days",style: TextStyle(fontFamily: "Myriad", fontSize: 22),),
                     ),
                     Container(
                       margin: EdgeInsets.symmetric(vertical: 10,horizontal: 10),
                       height: 60,
                       width: 60,
                       decoration: BoxDecoration(
-                        border: Border.all(),
                         shape: BoxShape.circle,
-                        color: Color.fromRGBO(252, 226, 5, 1),
+                        color: Color.fromRGBO(243, 243, 56, 1),
                       ),
                       child: Center(
                         child: Text(
                           '${halfDates.length}',
-                          style: TextStyle(fontFamily: "Myriad_Bold",fontSize: 30,fontWeight: FontWeight.w300, color: Colors.white),),
+                          style: TextStyle(fontFamily: "Myriad_Bold",fontSize: 20,fontWeight: FontWeight.w300, color: Colors.white),),
                       ),
                     )
                   ],

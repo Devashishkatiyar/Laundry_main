@@ -2,15 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:laundry/Classes/UserBasic.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_extend/share_extend.dart';
 
 class PdfProviderScreen extends StatelessWidget {
-	
+	final UserBasic userBasic;
 	
 	final String path;
 
-  const PdfProviderScreen({Key key, this.path}) : super(key: key);
+  const PdfProviderScreen({Key key, this.path, this.userBasic}) : super(key: key);
 	
   @override
   Widget build(BuildContext context) {
@@ -71,7 +72,11 @@ class PdfProviderScreen extends StatelessWidget {
 						      child: FlatButton(
 								      child: Text("Completed",style: TextStyle(color: Color.fromRGBO(255, 255, 255, 1),fontFamily: "Seguisb",fontSize: 20),),
 								      onPressed: () {
-									      Navigator.of(context).pop();
+									      Navigator.pop(context);
+									      Navigator.pop(context);
+									      File file = File(path);
+									      file.delete();
+									      
 								      }
 						      ),
 					      ),
